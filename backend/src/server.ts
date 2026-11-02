@@ -1,0 +1,10 @@
+import 'dotenv/config';
+import cors from 'cors';
+import express from 'express';
+const app=express();
+const port=Number(process.env.PORT??4000);
+app.disable('x-powered-by');
+app.use(cors({origin:process.env.FRONTEND_ORIGIN??'http://localhost:5173'}));
+app.use(express.json({limit:'64kb'}));
+app.get('/health',(_req,res)=>res.json({status:'ok',service:'b-secure-api'}));
+app.listen(port,'0.0.0.0',()=>console.log(`B-Secure API listening on ${port}`));

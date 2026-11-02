@@ -1,0 +1,14 @@
+import {seedState} from '../data/seed';
+import type {AppState,Organization,User,WorkspaceData} from '../types';
+const KEY='bsecure.mock-saas.real.v1';const DEMO_KEY='bsecure.mock-saas.demo-session.v1';
+export const loadState=():AppState=>{try{const demo=sessionStorage.getItem(DEMO_KEY);if(demo)return JSON.parse(demo) as AppState;const raw=localStorage.getItem(KEY);return raw?JSON.parse(raw) as AppState:seedState}catch{return seedState}};
+export const saveState=(s:AppState)=>{if(s.isDemo)sessionStorage.setItem(DEMO_KEY,JSON.stringify(s));else localStorage.setItem(KEY,JSON.stringify(s))};
+export const resetState=()=>{localStorage.removeItem(KEY);sessionStorage.removeItem(DEMO_KEY);return seedState};
+export const beginDemoSession=():AppState=>({...JSON.parse(JSON.stringify(seedState)) as AppState,isDemo:true});
+export const endDemoSession=()=>sessionStorage.removeItem(DEMO_KEY);
+export const login=(s:AppState,email:string,password:string)=>{const user=s.users.find(u=>u.email.toLowerCase()===email.trim().toLowerCase()&&u.mockPassword===password);return user?{state:{...s,currentUserId:user.id,selectedOrganizationId:null,isDemo:false},user}:{state:s,error:'Email or password did not match a local mock account.'}};
+export const register=(s:AppState,name:string,email:string,password:string)=>{if(s.users.some(u=>u.email.toLowerCase()===email.toLowerCase()))return{state:s,error:'That email already has a mock account.'};const user:User={id:crypto.randomUUID(),name,email,mockPassword:password};return{state:{...s,users:[...s.users,user],currentUserId:user.id,selectedOrganizationId:null,isDemo:false}}};
+export const demoLogin=(s:AppState,userId:string):AppState=>({...s,currentUserId:userId,selectedOrganizationId:null,isDemo:true});
+export const createOrganization=(s:AppState,name:string,description:string)=>{const organization:Organization={id:crypto.randomUUID(),name,description,createdAt:new Date().toISOString()};const workspace:WorkspaceData={organizationId:organization.id,rules:[],drafts:[],reviews:[],analysisHistory:[],truthShiftEnabled:false};return{organization,state:{...s,organizations:[...s.organizations,organization],memberships:[...s.memberships,{id:crypto.randomUUID(),userId:s.currentUserId!,organizationId:organization.id,role:'Admin' as const,status:'Active' as const,joinedAt:new Date().toISOString()}],workspaces:[...s.workspaces,workspace],selectedOrganizationId:organization.id}}};
+export const updateWorkspace=(s:AppState,orgId:string,fn:(w:WorkspaceData)=>WorkspaceData):AppState=>({...s,workspaces:s.workspaces.map(w=>w.organizationId===orgId?fn(w):w)});
+export const switchOrganization=(s:AppState,id:string):AppState=>({...s,selectedOrganizationId:id});
